@@ -1,0 +1,83 @@
+<!DOCTYPE html><html lang="zh-Hant-TW"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>文物偵探配對卡｜造形原理</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;background:#f6efe2;color:#3a2a1a}
+header{position:sticky;top:0;z-index:5;background:#7a3b1d;color:#fff;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;font-size:16px}
+header b{font-size:18px}
+#fb{min-height:52px;margin:8px;padding:8px 10px;border-radius:10px;background:#fff;font-size:15px;line-height:1.4}
+#fb.ok{background:#d9f2d9;border:2px solid #3a9a3a}#fb.no{background:#fde0dc;border:2px solid #c0392b}
+h2{font-size:15px;margin:10px 12px 4px}
+#dyn{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 8px;position:sticky;top:44px;z-index:4;background:#f6efe2;padding-bottom:6px}
+.dy{min-height:60px;border:none;border-radius:12px;background:#c8a46a;color:#3a1d05;font-size:17px;font-weight:bold;padding:6px;line-height:1.2}
+.dy.hint{background:#e8c477;box-shadow:0 0 0 3px #7a3b1d inset}
+.dy small{display:block;font-size:12px;font-weight:normal}
+#cards{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:8px}
+@media(min-width:700px){#cards{grid-template-columns:repeat(4,1fr)}#dyn{grid-template-columns:repeat(6,1fr)}}
+.c{background:#fff;border-radius:12px;padding:6px;text-align:center;border:3px solid transparent;box-shadow:0 1px 4px #0002;touch-action:none;user-select:none}
+.c img{width:100%;height:120px;object-fit:contain;pointer-events:none}
+.c .n{font-size:16px;font-weight:bold;margin-top:4px}
+.c.sel{border-color:#e67e22;transform:scale(1.03)}
+.c.done{opacity:.45;border-color:#3a9a3a}.c.done .n:after{content:" ✔"}
+.c.shake{animation:sh .4s}@keyframes sh{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+#end{display:none;position:fixed;inset:0;background:#000a;z-index:9;align-items:center;justify-content:center}
+#end div{background:#fff;border-radius:16px;padding:24px;width:85%;max-width:360px;text-align:center}
+.big{font-size:22px;padding:14px 28px;border:none;border-radius:12px;background:#7a3b1d;color:#fff;margin-top:12px}
+#ghost{position:fixed;pointer-events:none;z-index:10;width:90px;opacity:.8;display:none}
+</style></head><body>
+<header><b>🔍 文物偵探配對</b><span>⭐ <span id="sc">0</span>　⏱ <span id="tm">0:00</span>　<span id="lf">0</span>/16</span></header>
+<div id="fb">點選一張「文物卡」，再點它所屬的「朝代卡」（也可以拖曳）。</div>
+<div id="dyn"></div>
+<h2>文物卡</h2><div id="cards"></div>
+<div id="end"><div><h1>🎉 完成！</h1><p id="res" style="font-size:18px;line-height:1.6"></p><button class="big" onclick="start()">再玩一次</button></div></div>
+<img id="ghost" alt="">
+<script>
+const D=[["s","新石器／三皇五帝"],["x","夏"],["sh","商"],["z","周","西周／春秋／戰國"],["q","秦"],["h","漢"]];
+const C=[
+["pingping","雙耳尖底瓶","s","仰韶文化彩陶；繩套雙耳、尖底入水下沉取水，造形來自機能（圖2-19）。"],
+["danke","蛋殼杯","s","龍山文化「黑陶」代表，以轉盤製作，器壁薄如蛋殼（圖2-20）。"],
+["bagua","八卦","s","三皇五帝時期伏羲所創的八卦，屬抽象符號（圖2-21）。"],
+["ding","網格紋鼎","x","夏代青銅網格紋鼎，目前最早的銅鼎，造形簡潔樸素（圖2-23）。"],
+["yuhu","松綠石首玉虎","x","夏代玉器，造形簡潔，具幾何抽象紋（圖2-24）。"],
+["fangzun","四羊方尊","sh","商代青銅器，形態由圓變方，四角有羊首浮雕（圖2-26）。"],
+["jiagu","甲骨文","sh","商代刻於龜甲獸骨的占卜紀錄，中國最早的正式文字（圖2-29）。"],
+["sanxing","三星堆青銅面具","sh","商代三星堆青銅面具，證實長江流域「巴蜀文明」（圖2-28）。"],
+["maogong","毛公鼎","z","西周晚期，銘文（金文）近500字，傳世銘文最多（圖2-31）。"],
+["zifan","子犯編鐘","z","春秋時期，一套8件，飾有乳丁紋，藏於故宮（圖2-32）。"],
+["goujian","越王勾踐劍","z","春秋出現鐵器時代的名劍，與吳王夫差矛並稱（圖2-33）。"],
+["bohua","龍鳳仕女帛畫","z","戰國帛畫，與人物御龍帛畫同為最早的帛畫（圖2-36）。"],
+["hufu","杜虎符","q","秦代最早的兵符，調兵用的虎形信物（圖2-38）。"],
+["bingma","兵馬俑","q","秦始皇陵約八千陶俑，「千人千面」，造形寫實（圖2-39）。"],
+["gongdeng","長信宮燈","h","西漢；煙塵經中空右臂沉積燈身，具健康環保設計概念（圖2-41）。"],
+["mata","馬踏飛燕","h","東漢青銅器，動態、寫實，馬蹄踏飛燕展現速度感（圖2-43）。"]];
+const $=id=>document.getElementById(id);let sel=null,score,left,t0,timer,wrong;
+const DN=Object.fromEntries(D.map(d=>[d[0],d[1]]));
+D.forEach(d=>{const b=document.createElement('button');b.className='dy';b.dataset.d=d[0];b.innerHTML=d[1]+(d[2]?'<small>'+d[2]+'</small>':'');b.onclick=()=>pick(d[0]);$('dyn').appendChild(b)});
+function shuf(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a}
+function start(){$('end').style.display='none';score=0;left=16;wrong=0;sel=null;upd();
+ $('fb').className='';$('fb').textContent='點選一張「文物卡」，再點它所屬的「朝代卡」（也可以拖曳）。';
+ const w=$('cards');w.innerHTML='';
+ shuf(C).forEach(c=>{const e=document.createElement('div');e.className='c';e.dataset.k=c[0];
+  e.innerHTML='<img src="img/'+c[0]+'.webp" alt="'+c[1]+'" onerror="this.remove()"><div class="n">'+c[1]+'</div>';
+  e.onpointerdown=ev=>down(ev,e);w.appendChild(e)});
+ clearInterval(timer);t0=Date.now();timer=setInterval(tick,500);tick();scrollTo(0,0)}
+function tick(){const s=(Date.now()-t0)/1000|0;$('tm').textContent=(s/60|0)+':'+String(s%60).padStart(2,'0')}
+function upd(){$('sc').textContent=score;$('lf').textContent=16-left}
+function choose(e){if(e.classList.contains('done'))return;document.querySelectorAll('.c.sel').forEach(x=>x.classList.remove('sel'));sel=e;e.classList.add('sel');
+ document.querySelectorAll('.dy').forEach(b=>b.classList.add('hint'));$('fb').className='';$('fb').textContent='已選「'+C.find(c=>c[0]==e.dataset.k)[1]+'」→ 請點選朝代';}
+function pick(d){if(!sel){$('fb').className='';$('fb').textContent='請先點選一張文物卡 👇';return}
+ const c=C.find(x=>x[0]==sel.dataset.k),e=sel;
+ if(c[2]==d){score+=10;left--;e.classList.remove('sel');e.classList.add('done');$('fb').className='ok';$('fb').textContent='✅ 答對！'+c[1]+'屬於「'+DN[d]+'」：'+c[3];sel=null;
+  document.querySelectorAll('.dy').forEach(b=>b.classList.remove('hint'));upd();if(!left)finish()}
+ else{score=Math.max(0,score-3);wrong++;e.classList.remove('shake');void e.offsetWidth;e.classList.add('shake');$('fb').className='no';$('fb').textContent='❌ 不是「'+DN[d]+'」喔！'+c[1]+'在課本'+c[3].match(/圖2-\d+/)[0]+'，回想它的造形特色再試一次'+'。';upd()}}
+function finish(){clearInterval(timer);$('res').innerHTML='得分：<b>'+score+'</b> / 160<br>用時：'+$('tm').textContent+'<br>答錯次數：'+wrong;setTimeout(()=>$('end').style.display='flex',600)}
+// drag support
+let drag=null,sx,sy,moved;
+function down(ev,e){if(e.classList.contains('done'))return;drag=e;sx=ev.clientX;sy=ev.clientY;moved=false;e.setPointerCapture(ev.pointerId);
+ e.onpointermove=m=>{if(!moved&&Math.hypot(m.clientX-sx,m.clientY-sy)>12){moved=true;const g=$('ghost');g.src=e.querySelector('img')?.src||'';g.style.display=g.src?'block':'none';choose(e)}
+  if(moved){const g=$('ghost');g.style.left=m.clientX-45+'px';g.style.top=m.clientY-45+'px'}};
+ e.onpointerup=u=>{e.onpointermove=e.onpointerup=null;$('ghost').style.display='none';
+  if(!moved){choose(e);return}const t=document.elementFromPoint(u.clientX,u.clientY)?.closest('.dy');if(t)pick(t.dataset.d)}}
+start();
+</script></body></html>
